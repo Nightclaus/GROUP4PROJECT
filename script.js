@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let panX = 0;
     let panY = 0;
     let useUnionArea = true;
-    let showDebugMarkers = true;
+    let showDebugMarkers = false;
     let markerLayers = {};
 
     // (Constants and Color Roles remain the same)
