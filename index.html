@@ -14,10 +14,10 @@
 
     <div id="designer-page" class="hidden">
         <div id="hud">
+            <!-- HUD content remains exactly the same -->
             <div id="controls">
                 <button id="add-object-btn">+</button>
                 <div id="color-palette" class="hidden">
-                    <!-- Grey: Floor Plan, Green: Plants, Purple: Ventilation, Red: Windows -->
                     <div class="color-swatch" style="background-color: #808080;"></div>
                     <div class="color-swatch" style="background-color: #22c55e;"></div>
                     <div class="color-swatch" style="background-color: #a855f7;"></div>
@@ -27,7 +27,6 @@
             <div id="area-display"></div>
             <div id="environmental-hud">
                 <p>Max Occupancy: <span id="occupancy-estimate">0</span> people</p>
-                <!-- NEW: Added a display for the plant count -->
                 <p>Plants: <span id="plant-count">0</span></p>
                 <p>Windows: <span id="window-count">0</span></p>
                 <p>Ventilation Units: <span id="ventilation-count">0</span></p>
@@ -43,8 +42,14 @@
                 <label><input type="checkbox" id="debug-toggle" checked> Show Markers</label>
             </div>
         </div>
+        
+        <!-- The interactive area is now a fixed "viewport" -->
         <div id="interactive-area">
-            <div id="debug-layer"></div>
+            <!-- NEW: This single container holds the grid and all objects. THIS is what we move. -->
+            <div id="world-container">
+                <canvas id="grid-canvas"></canvas>
+                <div id="debug-layer"></div>
+            </div>
         </div>
     </div>
 
