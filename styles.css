@@ -1,74 +1,44 @@
 /* General Body Styles */
-body {
-    font-family: sans-serif;
-    margin: 0;
-    overflow: hidden;
-}
+body { font-family: sans-serif; margin: 0; overflow: hidden; }
 
 /* --- Page Switching Logic --- */
-#landing-page {
-    display: flex; flex-direction: column; justify-content: center;
-    align-items: center; height: 100vh; background-color: #f0f0f0;
-}
+#landing-page { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background-color: #f0f0f0; }
 .hidden { display: none !important; }
 
 /* --- Designer Page & Interactive Area --- */
 #designer-page { position: relative; width: 100vw; height: 100vh; }
-
-/* REVISED: Gridlines will be added by JS. Cursors indicate panning. */
 #interactive-area {
-    position: relative; width: 100%; height: 100%;
-    overflow: hidden;
-    background-color: #f4f4f5; /* A light grey fallback background */
-    transform-origin: top left;
-    cursor: grab;
+    position: relative; width: 100%; height: 100%; overflow: hidden;
+    background-color: #f4f4f5; transform-origin: top left; cursor: grab;
 }
-#interactive-area:active {
-    cursor: grabbing;
-}
+#interactive-area:active { cursor: grabbing; }
 
 /* --- HUD & Controls --- */
 #hud {
     position: absolute; top: 10px; left: 10px; z-index: 10;
-    background-color: rgba(0, 0, 0, 0.75); color: white;
-    padding: 10px; border-radius: 8px; user-select: none;
-    max-width: 250px;
+    background-color: rgba(0, 0, 0, 0.75); color: white; padding: 10px;
+    border-radius: 8px; user-select: none; max-width: 250px;
 }
 #hud p { margin: 8px 0 4px; }
 #controls { display: flex; align-items: center; gap: 10px; margin-bottom: 10px;}
-#add-object-btn {
-    font-size: 24px; font-weight: bold; width: 30px; height: 30px;
-    border-radius: 50%; border: none; cursor: pointer;
-}
+#add-object-btn { font-size: 24px; font-weight: bold; width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; }
 #color-palette { display: flex; gap: 5px; }
-.color-swatch {
-    width: 20px; height: 20px; border-radius: 50%;
-    border: 2px solid white; cursor: pointer;
-}
-#area-display {
-    margin-top: 10px; padding-top: 10px;
-    border-top: 1px solid #666; font-size: 0.9em;
-}
+.color-swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; cursor: pointer; }
+#area-display { margin-top: 10px; padding-top: 10px; border-top: 1px solid #666; font-size: 0.9em; }
+
+/* NEW: Styles for the toggles */
+.toggles { margin-top: 10px; padding-top: 10px; border-top: 1px solid #666; }
+.toggles label { display: block; margin-bottom: 5px; font-size: 0.9em; }
 
 /* --- The Interactive Box & Handles --- */
-.resizable-box {
-    position: absolute;
-    border: 2px solid #333;
-    touch-action: none;
-    box-sizing: border-box;
-    opacity: 0.75;
-}
-.resizable-box.selected {
-    border-style: dashed;
-    border-color: #f59e0b;
-    z-index: 999 !important;
-}
-.resize-handle {
-    position: absolute; width: 10px; height: 10px;
-    background-color: #ffffff; border: 1px solid #333;
-    border-radius: 2px; z-index: 5;
-}
+.resizable-box { position: absolute; border: 2px solid #333; touch-action: none; box-sizing: border-box; opacity: 0.75; }
+.resizable-box.selected { border-style: dashed; border-color: #f59e0b; z-index: 999 !important; }
+.resize-handle { position: absolute; width: 10px; height: 10px; background-color: #ffffff; border: 1px solid #333; border-radius: 2px; z-index: 5; }
 .handle-tl { top: -5px; left: -5px; cursor: nwse-resize; }
 .handle-tr { top: -5px; right: -5px; cursor: nesw-resize; }
 .handle-bl { bottom: -5px; left: -5px; cursor: nesw-resize; }
 .handle-br { bottom: -5px; right: -5px; cursor: nwse-resize; }
+
+/* NEW: Styles for the debug layer and markers */
+#debug-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+.debug-marker { position: absolute; width: 3px; height: 3px; background-color: #f59e0b; border-radius: 50%; }

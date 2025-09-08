@@ -4,12 +4,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const designerPage = document.getElementById('designer-page');
     const startButton = document.getElementById('start-button');
     const interactiveArea = document.getElementById('interactive-area');
+    const debugLayer = document.getElementById('debug-layer');
     const addObjectBtn = document.getElementById('add-object-btn');
     const areaDisplay = document.getElementById('area-display');
-    const scaleValue = document.getElementById('scale-value');
     const scaleSlider = document.getElementById('scale-slider');
+    const scaleValue = document.getElementById('scale-value');
     const zoomSlider = document.getElementById('zoom-slider');
     const colorPalette = document.getElementById('color-palette');
+    const unionAreaToggle = document.getElementById('union-area-toggle');
+    const debugToggle = document.getElementById('debug-toggle');
 
     // --- Application State ---
     let designObjects = [];
@@ -18,6 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedObjectId = null;
     let panX = 0;
     let panY = 0;
+    // NEW: State for toggles
+    let useUnionArea = true;
+    let showDebugMarkers = false;
 
     // --- Core Functions ---
 
@@ -27,17 +33,13 @@ document.addEventListener('DOMContentLoaded', () => {
         updateGrid();
     }
     
-    // NEW: Function to draw and update the background grid
     function updateGrid() {
         const zoom = zoomSlider.value;
-        const gridSize = scale * zoom; // The visual size of 1 meter
-
-        // Create two gradients, one for vertical lines and one for horizontal
+        const gridSize = scale * zoom;
         interactiveArea.style.backgroundImage = `
             linear-gradient(to right, #e0e0e0 1px, transparent 1px),
             linear-gradient(to bottom, #e0e0e0 1px, transparent 1px)
         `;
-        // Set the size of the grid squares
         interactiveArea.style.backgroundSize = `${gridSize}px ${gridSize}px`;
     }
 
@@ -48,14 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const canvasX = (centerX - panX) / zoom;
         const canvasY = (centerY - panY) / zoom;
         
-        const newObjectData = {
-            id: objectId,
-            widthMeters: 1, // Default to 1x1 meter
-            heightMeters: 1,
-            x: canvasX - ((1 * scale) / 2),
-            y: canvasY - ((1 * scale) / 2),
-            color: '#3b82f6'
-        };
+        const newObjectData = { id: objectId, widthMeters: 1, heightMeters: 1, x: canvasX - (scale / 2), y: canvasY - (scale / 2), color: '#3b82f6' };
         designObjects.push(newObjectData);
 
         const box = document.createElement('div');
@@ -63,13 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
         box.classList.add('resizable-box');
         box.style.backgroundColor = newObjectData.color;
         
-        ['tl', 'tr', 'bl', 'br'].forEach(corner => {
-            const handle = document.createElement('div');
-            handle.classList.add('resize-handle', `handle-${corner}`);
-            box.appendChild(handle);
-        });
+        ['tl', 'tr', 'bl', 'br'].forEach(c => { box.appendChild(Object.assign(document.createElement('div'), { className: `resize-handle handle-${c}` })); });
 
-        interactiveArea.appendChild(box);
+        interactiveArea.insertBefore(box, debugLayer); // Add box before the debug layer
         renderObject(objectId);
         initializeObjectInteraction(box);
         selectObject(objectId);
@@ -86,125 +77,131 @@ document.addEventListener('DOMContentLoaded', () => {
         element.style.transform = `translate(${data.x}px, ${data.y}px)`;
     }
     
-    // NEW: Advanced area calculation for overlapping objects
-    function calculateUnionArea(objectsInGroup) {
-        const resolution = 20; // 20 points per meter = 5cm accuracy. Higher is more accurate but slower.
-        const coveredPoints = new Set();
+    // REVISED: This function is now the master controller for area display
+    function updateHudArea() {
+        const objectsByColor = {};
+        designObjects.forEach(obj => {
+            if (!objectsByColor[obj.color]) objectsByColor[obj.color] = [];
+            objectsByColor[obj.color].push(obj);
+        });
 
+        clearDebugMarkers();
+        areaDisplay.innerHTML = '';
+        if (Object.keys(objectsByColor).length === 0) {
+            areaDisplay.innerHTML = '<p>No objects yet.</p>';
+            return;
+        }
+
+        for (const color in objectsByColor) {
+            let totalArea = 0;
+            const objectsInGroup = objectsByColor[color];
+
+            if (useUnionArea) {
+                const { area, points } = calculateUnionArea(objectsInGroup);
+                totalArea = area;
+                if (showDebugMarkers) {
+                    drawDebugMarkers(points);
+                }
+            } else {
+                totalArea = calculateSumArea(objectsInGroup);
+            }
+
+            const p = document.createElement('p');
+            p.innerHTML = `<span style="color:${color};">■</span> Total: ${totalArea.toFixed(2)} sq. m`;
+            areaDisplay.appendChild(p);
+        }
+    }
+
+    // NEW: Simple sum calculation
+    function calculateSumArea(objectsInGroup) {
+        return objectsInGroup.reduce((sum, obj) => sum + (obj.widthMeters * obj.heightMeters), 0);
+    }
+
+    // REVISED: Returns both area and the points for debugging
+    function calculateUnionArea(objectsInGroup) {
+        const resolution = 20; // 5cm accuracy
+        const coveredPoints = new Set();
         objectsInGroup.forEach(obj => {
             const startX = Math.round(obj.x / scale * resolution);
             const startY = Math.round(obj.y / scale * resolution);
             const endX = Math.round((obj.x / scale + obj.widthMeters) * resolution);
             const endY = Math.round((obj.y / scale + obj.heightMeters) * resolution);
-
             for (let i = startX; i < endX; i++) {
                 for (let j = startY; j < endY; j++) {
                     coveredPoints.add(`${i},${j}`);
                 }
             }
         });
-
-        return coveredPoints.size / (resolution * resolution);
+        const area = coveredPoints.size / (resolution * resolution);
+        return { area, points: coveredPoints };
     }
 
-    function updateHudArea() {
-        const objectsByColor = {};
-        designObjects.forEach(obj => {
-            if (!objectsByColor[obj.color]) {
-                objectsByColor[obj.color] = [];
-            }
-            objectsByColor[obj.color].push(obj);
+    // NEW: Functions to draw and clear the debug markers
+    function drawDebugMarkers(points) {
+        const resolution = 20;
+        const fragment = document.createDocumentFragment();
+        points.forEach(pointString => {
+            const [i, j] = pointString.split(',').map(Number);
+            const marker = document.createElement('div');
+            marker.className = 'debug-marker';
+            marker.style.left = `${(i / resolution) * scale}px`;
+            marker.style.top = `${(j / resolution) * scale}px`;
+            fragment.appendChild(marker);
         });
-
-        areaDisplay.innerHTML = '';
-        if (Object.keys(objectsByColor).length === 0) {
-            areaDisplay.innerHTML = '<p>No objects yet.</p>';
-        } else {
-            for (const color in objectsByColor) {
-                const totalArea = calculateUnionArea(objectsByColor[color]); // Use the new function
-                const p = document.createElement('p');
-                p.innerHTML = `<span style="color:${color};">■</span> Total: ${totalArea.toFixed(2)} sq. m`;
-                areaDisplay.appendChild(p);
-            }
-        }
+        debugLayer.appendChild(fragment);
+    }
+    function clearDebugMarkers() {
+        debugLayer.innerHTML = '';
     }
     
     function selectObject(objectId) {
         selectedObjectId = objectId;
-        document.querySelectorAll('.resizable-box').forEach(box => {
-            box.classList.toggle('selected', box.id === objectId);
-        });
+        document.querySelectorAll('.resizable-box').forEach(box => box.classList.toggle('selected', box.id === objectId));
         colorPalette.classList.toggle('hidden', !objectId);
     }
     
     function initializeObjectInteraction(element) {
-        interact(element)
-            .resizable({
+        interact(element).resizable({/*...same as before...*/}).draggable({/*...same as before...*/})
+        .resizable({
                 edges: { top: '.handle-tl, .handle-tr', left: '.handle-tl, .handle-bl', bottom: '.handle-bl, .handle-br', right: '.handle-tr, .handle-br' },
                 listeners: {
                     move(event) {
-                        const data = designObjects.find(obj => obj.id === element.id);
-                        if (!data) return;
-                        
-                        const zoom = zoomSlider.value;
-                        data.widthMeters = event.rect.width / scale;
-                        data.heightMeters = event.rect.height / scale;
-                        data.x = (parseFloat(element.getAttribute('data-x')) || 0) + event.deltaRect.left / zoom;
-                        data.y = (parseFloat(element.getAttribute('data-y')) || 0) + event.deltaRect.top / zoom;
-
+                        const data = designObjects.find(obj => obj.id === element.id); if (!data) return;
+                        data.widthMeters = event.rect.width / scale; data.heightMeters = event.rect.height / scale;
+                        data.x += event.deltaRect.left; data.y += event.deltaRect.top;
                         renderObject(element.id);
-                        updateHudArea();
                     },
-                    start(event) {
-                        const element = event.target;
-                        element.setAttribute('data-x', designObjects.find(o=>o.id === element.id).x);
-                        element.setAttribute('data-y', designObjects.find(o=>o.id === element.id).y);
-                    }
+                    end() { updateHudArea(); }
                 },
-                modifiers: [ interact.modifiers.restrictEdges({ outer: document.body }) ],
-                inertia: false
+                modifiers: [ interact.modifiers.restrictEdges({ outer: document.body }) ], inertia: false
             })
             .draggable({
                 listeners: {
                     move(event) {
-                        const data = designObjects.find(obj => obj.id === element.id);
-                        if (!data) return;
+                        const data = designObjects.find(obj => obj.id === element.id); if (!data) return;
                         const zoom = zoomSlider.value;
-                        data.x += event.dx / zoom;
-                        data.y += event.dy / zoom;
+                        data.x += event.dx / zoom; data.y += event.dy / zoom;
                         renderObject(element.id);
                     },
-                    end() {
-                        updateHudArea(); // Do the expensive calculation only when drag ends
-                    }
-                },
-                inertia: true
+                    end() { updateHudArea(); }
+                }, inertia: true
             })
-            .on('tap', (event) => {
-                selectObject(element.id);
-                event.stopPropagation();
-            });
+            .on('tap', (event) => { selectObject(element.id); event.stopPropagation(); });
     }
 
     // --- Event Listeners ---
     startButton.addEventListener('click', () => {
-        landingPage.classList.add('hidden');
-        designerPage.classList.remove('hidden');
-        updateCanvasTransform(); // Initial transform and grid setup
-        if (designObjects.length === 0) {
-            createObject(designerPage.clientWidth / 2, designerPage.clientHeight / 2);
-        }
+        landingPage.classList.add('hidden'); designerPage.classList.remove('hidden');
+        updateCanvasTransform();
+        if (designObjects.length === 0) createObject(designerPage.clientWidth / 2, designerPage.clientHeight / 2);
     });
 
-    addObjectBtn.addEventListener('click', () => {
-        createObject(designerPage.clientWidth / 2, designerPage.clientHeight / 2);
-    });
+    addObjectBtn.addEventListener('click', () => createObject(designerPage.clientWidth / 2, designerPage.clientHeight / 2));
 
     scaleSlider.addEventListener('input', (event) => {
-        scale = parseInt(event.target.value, 10);
-        scaleValue.textContent = scale;
+        scale = parseInt(event.target.value, 10); scaleValue.textContent = scale;
         designObjects.forEach(obj => renderObject(obj.id));
-        updateGrid(); // Update grid when object scale changes
+        updateGrid(); updateHudArea();
     });
 
     zoomSlider.addEventListener('input', updateCanvasTransform);
@@ -214,31 +211,27 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = designObjects.find(obj => obj.id === selectedObjectId);
             const element = document.getElementById(selectedObjectId);
             if (data && element) {
-                const newColor = event.target.style.backgroundColor;
-                data.color = newColor;
-                element.style.backgroundColor = newColor;
+                data.color = element.style.backgroundColor = event.target.style.backgroundColor;
                 updateHudArea();
             }
         }
     });
     
-    interactiveArea.addEventListener('click', (event) => {
-        if (event.currentTarget === event.target) {
-            selectObject(null);
-        }
-    });
+    interactiveArea.addEventListener('click', (event) => { if (event.currentTarget === event.target) selectObject(null); });
 
-    // PANNING FIX: Use a separate interact instance for the background
     interact(designerPage).draggable({
-        context: designerPage,
-        ignoreFrom: '.resizable-box, #hud', // Don't pan when interacting with objects or HUD
-        listeners: {
-            move(event) {
-                panX += event.dx;
-                panY += event.dy;
-                updateCanvasTransform();
-            }
-        }
+        context: designerPage, ignoreFrom: '.resizable-box, #hud',
+        listeners: { move(event) { panX += event.dx; panY += event.dy; updateCanvasTransform(); } }
+    });
+    
+    // NEW: Listeners for the toggles
+    unionAreaToggle.addEventListener('change', (event) => {
+        useUnionArea = event.target.checked;
+        updateHudArea();
+    });
+    debugToggle.addEventListener('change', (event) => {
+        showDebugMarkers = event.target.checked;
+        updateHudArea();
     });
     
     updateHudArea();
