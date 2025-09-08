@@ -17,25 +17,33 @@
             <div id="controls">
                 <button id="add-object-btn">+</button>
                 <div id="color-palette" class="hidden">
-                    <div class="color-swatch" style="background-color: #3b82f6;"></div>
-                    <div class="color-swatch" style="background-color: #ef4444;"></div>
+                    <!-- Grey: Floor Plan, Green: Plants, Purple: Ventilation, Red: Windows -->
+                    <div class="color-swatch" style="background-color: #808080;"></div>
                     <div class="color-swatch" style="background-color: #22c55e;"></div>
                     <div class="color-swatch" style="background-color: #a855f7;"></div>
+                    <div class="color-swatch" style="background-color: #ef4444;"></div>
                 </div>
             </div>
             <div id="area-display"></div>
+            <div id="environmental-hud">
+                <p>Max Occupancy: <span id="occupancy-estimate">0</span> people</p>
+                <!-- NEW: Added a display for the plant count -->
+                <p>Plants: <span id="plant-count">0</span></p>
+                <p>Windows: <span id="window-count">0</span></p>
+                <p>Ventilation Units: <span id="ventilation-count">0</span></p>
+                <p>Est. Temp: <span id="temp-estimate">--</span>°C</p>
+                <p>Est. CO2: <span id="co2-estimate">--</span> ppm</p>
+            </div>
             <p>Object Scale: 1m = <span id="scale-value">50</span>px</p>
             <input type="range" id="scale-slider" min="10" max="150" value="50">
             <p>Camera Zoom</p>
             <input type="range" id="zoom-slider" min="0.2" max="3" value="1" step="0.05">
-            <!-- NEW: Toggles for area calculation and debug view -->
             <div class="toggles">
                 <label><input type="checkbox" id="union-area-toggle" checked> Union Area</label>
                 <label><input type="checkbox" id="debug-toggle" checked> Show Markers</label>
             </div>
         </div>
         <div id="interactive-area">
-            <!-- NEW: Container for debug markers -->
             <div id="debug-layer"></div>
         </div>
     </div>

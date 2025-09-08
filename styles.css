@@ -25,12 +25,16 @@ body { font-family: sans-serif; margin: 0; overflow: hidden; }
 #color-palette { display: flex; gap: 5px; }
 .color-swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; cursor: pointer; }
 #area-display { margin-top: 10px; padding-top: 10px; border-top: 1px solid #666; font-size: 0.9em; }
+
+/* NEW: Style for the environmental estimates section */
+#environmental-hud { margin-top: 10px; padding-top: 10px; border-top: 1px solid #666; font-size: 0.9em; }
+
 .toggles { margin-top: 10px; padding-top: 10px; border-top: 1px solid #666; }
 .toggles label { display: block; margin-bottom: 5px; font-size: 0.9em; }
 
 /* --- The Interactive Box & Handles --- */
-.resizable-box { 
-    position: absolute; border: 2px solid #333; touch-action: none; 
+.resizable-box {
+    position: absolute; border: 2px solid #333; touch-action: none;
     box-sizing: border-box; opacity: 0.75; z-index: 10; /* Sits below the debug layer */
 }
 .resizable-box.selected { border-style: dashed; border-color: #f59e0b; z-index: 11 !important; }
@@ -44,11 +48,9 @@ body { font-family: sans-serif; margin: 0; overflow: hidden; }
 #debug-layer {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     pointer-events: none;
-    /* THE FIX: This brings the markers to the foreground */
-    z-index: 15; 
+    z-index: 15;
 }
 .debug-marker {
     position: absolute; width: 3px; height: 3px;
     border-radius: 50%;
-    /* The color is now set by JavaScript */
 }
