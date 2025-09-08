@@ -14,12 +14,25 @@
 
     <div id="designer-page" class="hidden">
         <div id="hud">
-            <p>Area: <span id="sqm-value">0</span> sq. m</p>
-            <p>Scale: 1m = <span id="scale-value">50</span>px</p>
-            <input type="range" id="scale-slider" min="10" max="200" value="50">
+            <div id="controls">
+                <button id="add-object-btn">+</button>
+                <div id="color-palette" class="hidden">
+                    <div class="color-swatch" style="background-color: #3b82f6;"></div>
+                    <div class="color-swatch" style="background-color: #ef4444;"></div>
+                    <div class="color-swatch" style="background-color: #22c55e;"></div>
+                    <div class="color-swatch" style="background-color: #a855f7;"></div>
+                </div>
+            </div>
+            <div id="area-display">
+                <!-- Area totals will be generated here by JS -->
+            </div>
+            <p>Object Scale: 1m = <span id="scale-value">50</span>px</p>
+            <input type="range" id="scale-slider" min="10" max="150" value="50">
+            <p>Camera Zoom</p>
+            <input type="range" id="zoom-slider" min="0.5" max="2.5" value="1" step="0.05">
         </div>
         <div id="interactive-area">
-            <div id="resizable-box"></div>
+            <!-- Designer objects will be created by JavaScript -->
         </div>
     </div>
 

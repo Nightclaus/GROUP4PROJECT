@@ -2,84 +2,73 @@
 body {
     font-family: sans-serif;
     margin: 0;
-    overflow: hidden; /* Prevents scrollbars from appearing */
-}
-
-/* --- Page Switching Logic --- */
-
-/* Landing Page Container */
-#landing-page {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: #f0f0f0;
-}
-
-/* This is the key to hiding the landing page. The !important flag ensures this rule always wins. */
-.hidden {
-    display: none !important;
-}
-
-
-/* --- Designer Page & Interactive Area --- */
-
-/* The main container for the designer tool */
-#designer-page {
-    position: relative; /* This is crucial for positioning the HUD and box inside it */
-    width: 100vw;
-    height: 100vh;
-}
-
-/* The area where the box lives. It also needs to be a positioning container. */
-#interactive-area {
-    position: relative;
-    width: 100%;
-    height: 100%;
     overflow: hidden;
 }
 
-/* The heads-up display (HUD) */
-#hud {
-    position: absolute; /* Positions it relative to #designer-page */
-    top: 10px;
-    left: 10px;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
-    z-index: 10; /* Ensures the HUD is always on top */
+/* --- Page Switching Logic --- */
+#landing-page {
+    display: flex; flex-direction: column; justify-content: center;
+    align-items: center; height: 100vh; background-color: #f0f0f0;
+}
+.hidden { display: none !important; }
+
+/* --- Designer Page & Interactive Area --- */
+#designer-page { position: relative; width: 100vw; height: 100vh; }
+
+/* REVISED: Gridlines will be added by JS. Cursors indicate panning. */
+#interactive-area {
+    position: relative; width: 100%; height: 100%;
+    overflow: hidden;
+    background-color: #f4f4f5; /* A light grey fallback background */
+    transform-origin: top left;
+    cursor: grab;
+}
+#interactive-area:active {
+    cursor: grabbing;
 }
 
+/* --- HUD & Controls --- */
+#hud {
+    position: absolute; top: 10px; left: 10px; z-index: 10;
+    background-color: rgba(0, 0, 0, 0.75); color: white;
+    padding: 10px; border-radius: 8px; user-select: none;
+    max-width: 250px;
+}
+#hud p { margin: 8px 0 4px; }
+#controls { display: flex; align-items: center; gap: 10px; margin-bottom: 10px;}
+#add-object-btn {
+    font-size: 24px; font-weight: bold; width: 30px; height: 30px;
+    border-radius: 50%; border: none; cursor: pointer;
+}
+#color-palette { display: flex; gap: 5px; }
+.color-swatch {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid white; cursor: pointer;
+}
+#area-display {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid #666; font-size: 0.9em;
+}
 
 /* --- The Interactive Box & Handles --- */
-
-/* This is the box that the JavaScript creates and controls. */
-#resizable-box {
-    /* CRITICAL: Position is absolute so JS can control its x/y coordinates. */
-    /* We DO NOT set top, left, or transform here. This prevents all jumping/immovable bugs. */
+.resizable-box {
     position: absolute;
-    
     border: 2px solid #333;
-    background-color: rgba(0, 123, 255, 0.5);
-    touch-action: none; /* Recommended by interact.js for touch devices */
-    box-sizing: border-box; /* Makes width/height calculations include the border */
+    touch-action: none;
+    box-sizing: border-box;
+    opacity: 0.75;
 }
-
-/* Styles for the small square vertex handles */
+.resizable-box.selected {
+    border-style: dashed;
+    border-color: #f59e0b;
+    z-index: 999 !important;
+}
 .resize-handle {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    background-color: #ffffff;
-    border: 1px solid #333;
-    border-radius: 2px;
-    z-index: 5;
+    position: absolute; width: 10px; height: 10px;
+    background-color: #ffffff; border: 1px solid #333;
+    border-radius: 2px; z-index: 5;
 }
-
-/* Positioning each handle at a corner and setting the correct resize cursor */
-.handle-tl { top: -5px; left: -5px; cursor: nwse-resize; } /* Top-Left */
-.handle-tr { top: -5px; right: -5px; cursor: nesw-resize; } /* Top-Right */
-.handle-bl { bottom: -5px; left: -5px; cursor: nesw-resize; } /* Bottom-Left */
-.handle-br { bottom: -5px; right: -5px; cursor: nwse-resize; } /* Bottom-Right */
+.handle-tl { top: -5px; left: -5px; cursor: nwse-resize; }
+.handle-tr { top: -5px; right: -5px; cursor: nesw-resize; }
+.handle-bl { bottom: -5px; left: -5px; cursor: nesw-resize; }
+.handle-br { bottom: -5px; right: -5px; cursor: nwse-resize; }
