@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let panX = 0;
     let panY = 0;
     let useUnionArea = true;
-    let showDebugMarkers = false;
+    let showDebugMarkers = true;
     let markerLayers = {}; // An object to hold references to each color's marker layer
 
     // --- Core Functions ---
