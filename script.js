@@ -21,18 +21,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedObjectId = null;
     let panX = 0;
     let panY = 0;
-    // NEW: State for toggles
     let useUnionArea = true;
     let showDebugMarkers = false;
+    let markerLayers = {}; // An object to hold references to each color's marker layer
 
     // --- Core Functions ---
 
     function updateCanvasTransform() {
         const zoom = zoomSlider.value;
+        const gridSize = scale * zoom;
         interactiveArea.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
         updateGrid();
     }
-    
+
     function updateGrid() {
         const zoom = zoomSlider.value;
         const gridSize = scale * zoom;
@@ -49,18 +50,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const zoom = zoomSlider.value;
         const canvasX = (centerX - panX) / zoom;
         const canvasY = (centerY - panY) / zoom;
-        
-        const newObjectData = { id: objectId, widthMeters: 1, heightMeters: 1, x: canvasX - (scale / 2), y: canvasY - (scale / 2), color: '#3b82f6' };
+
+        const newObjectData = {
+            id: objectId,
+            widthMeters: 1,
+            heightMeters: 1,
+            x: canvasX - (scale / 2),
+            y: canvasY - (scale / 2),
+            color: '#3b82f6'
+        };
         designObjects.push(newObjectData);
 
         const box = document.createElement('div');
         box.id = objectId;
         box.classList.add('resizable-box');
         box.style.backgroundColor = newObjectData.color;
-        
-        ['tl', 'tr', 'bl', 'br'].forEach(c => { box.appendChild(Object.assign(document.createElement('div'), { className: `resize-handle handle-${c}` })); });
 
-        interactiveArea.insertBefore(box, debugLayer); // Add box before the debug layer
+        ['tl', 'tr', 'bl', 'br'].forEach(c => {
+            box.appendChild(Object.assign(document.createElement('div'), {
+                className: `resize-handle handle-${c}`
+            }));
+        });
+
+        interactiveArea.insertBefore(box, debugLayer);
         renderObject(objectId);
         initializeObjectInteraction(box);
         selectObject(objectId);
@@ -71,21 +83,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = designObjects.find(obj => obj.id === objectId);
         const element = document.getElementById(objectId);
         if (!data || !element) return;
-
         element.style.width = `${data.widthMeters * scale}px`;
         element.style.height = `${data.heightMeters * scale}px`;
         element.style.transform = `translate(${data.x}px, ${data.y}px)`;
     }
-    
-    // REVISED: This function is now the master controller for area display
+
     function updateHudArea() {
         const objectsByColor = {};
         designObjects.forEach(obj => {
-            if (!objectsByColor[obj.color]) objectsByColor[obj.color] = [];
+            if (!objectsByColor[obj.color]) {
+                objectsByColor[obj.color] = [];
+            }
             objectsByColor[obj.color].push(obj);
         });
 
-        clearDebugMarkers();
+        debugLayer.innerHTML = '';
+        markerLayers = {};
+
         areaDisplay.innerHTML = '';
         if (Object.keys(objectsByColor).length === 0) {
             areaDisplay.innerHTML = '<p>No objects yet.</p>';
@@ -97,10 +111,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const objectsInGroup = objectsByColor[color];
 
             if (useUnionArea) {
-                const { area, points } = calculateUnionArea(objectsInGroup);
+                const {
+                    area,
+                    points
+                } = calculateUnionArea(objectsInGroup);
                 totalArea = area;
                 if (showDebugMarkers) {
-                    drawDebugMarkers(points);
+                    drawDebugMarkers(points, color);
                 }
             } else {
                 totalArea = calculateSumArea(objectsInGroup);
@@ -112,14 +129,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // NEW: Simple sum calculation
     function calculateSumArea(objectsInGroup) {
         return objectsInGroup.reduce((sum, obj) => sum + (obj.widthMeters * obj.heightMeters), 0);
     }
 
-    // REVISED: Returns both area and the points for debugging
     function calculateUnionArea(objectsInGroup) {
-        const resolution = 20; // 5cm accuracy
+        const resolution = 20;
         const coveredPoints = new Set();
         objectsInGroup.forEach(obj => {
             const startX = Math.round(obj.x / scale * resolution);
@@ -133,11 +148,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         const area = coveredPoints.size / (resolution * resolution);
-        return { area, points: coveredPoints };
+        return {
+            area,
+            points: coveredPoints
+        };
     }
 
-    // NEW: Functions to draw and clear the debug markers
-    function drawDebugMarkers(points) {
+    function drawDebugMarkers(points, color) {
+        let layer = markerLayers[color];
+        if (!layer) {
+            layer = document.createElement('div');
+            debugLayer.appendChild(layer);
+            markerLayers[color] = layer;
+        }
+
         const resolution = 20;
         const fragment = document.createDocumentFragment();
         points.forEach(pointString => {
@@ -148,60 +172,111 @@ document.addEventListener('DOMContentLoaded', () => {
             marker.style.top = `${(j / resolution) * scale}px`;
             fragment.appendChild(marker);
         });
-        debugLayer.appendChild(fragment);
+        layer.appendChild(fragment);
     }
-    function clearDebugMarkers() {
-        debugLayer.innerHTML = '';
-    }
-    
+
     function selectObject(objectId) {
         selectedObjectId = objectId;
-        document.querySelectorAll('.resizable-box').forEach(box => box.classList.toggle('selected', box.id === objectId));
+        document.querySelectorAll('.resizable-box').forEach(box => {
+            box.classList.toggle('selected', box.id === objectId);
+        });
         colorPalette.classList.toggle('hidden', !objectId);
     }
-    
+
     function initializeObjectInteraction(element) {
-        interact(element).resizable({/*...same as before...*/}).draggable({/*...same as before...*/})
-        .resizable({
-                edges: { top: '.handle-tl, .handle-tr', left: '.handle-tl, .handle-bl', bottom: '.handle-bl, .handle-br', right: '.handle-tr, .handle-br' },
+        const startListener = () => {
+            const data = designObjects.find(obj => obj.id === element.id);
+            if (!data) return;
+
+            const color = data.color;
+            if (markerLayers[color]) {
+                markerLayers[color].innerHTML = '';
+            }
+        };
+
+        const endListener = () => {
+            updateHudArea();
+        };
+
+        interact(element)
+            .resizable({
+                edges: {
+                    top: '.handle-tl, .handle-tr',
+                    left: '.handle-tl, .handle-bl',
+                    bottom: '.handle-bl, .handle-br',
+                    right: '.handle-tr, .handle-br'
+                },
                 listeners: {
+                    start: startListener,
                     move(event) {
-                        const data = designObjects.find(obj => obj.id === element.id); if (!data) return;
-                        data.widthMeters = event.rect.width / scale; data.heightMeters = event.rect.height / scale;
-                        data.x += event.deltaRect.left; data.y += event.deltaRect.top;
+                        const data = designObjects.find(obj => obj.id === element.id);
+                        if (!data) return;
+                        data.widthMeters = event.rect.width / scale;
+                        data.heightMeters = event.rect.height / scale;
+                        data.x += event.deltaRect.left;
+                        data.y += event.deltaRect.top;
                         renderObject(element.id);
                     },
-                    end() { updateHudArea(); }
+                    end: endListener
                 },
-                modifiers: [ interact.modifiers.restrictEdges({ outer: document.body }) ], inertia: false
+                modifiers: [interact.modifiers.restrictEdges({
+                    outer: document.body
+                })],
+                inertia: false
             })
             .draggable({
                 listeners: {
+                    start: startListener,
                     move(event) {
-                        const data = designObjects.find(obj => obj.id === element.id); if (!data) return;
+                        const data = designObjects.find(obj => obj.id === element.id);
+                        if (!data) return;
                         const zoom = zoomSlider.value;
-                        data.x += event.dx / zoom; data.y += event.dy / zoom;
+                        data.x += event.dx / zoom;
+                        data.y += event.dy / zoom;
                         renderObject(element.id);
                     },
-                    end() { updateHudArea(); }
-                }, inertia: true
+                    end: endListener
+                },
+                inertia: true
             })
-            .on('tap', (event) => { selectObject(element.id); event.stopPropagation(); });
+            .on('tap', (event) => {
+                selectObject(element.id);
+                event.stopPropagation();
+            });
     }
 
     // --- Event Listeners ---
+    const panEvents = {
+        start: () => {
+            debugLayer.innerHTML = '';
+        },
+        move(event) {
+            panX += event.dx;
+            panY += event.dy;
+            updateCanvasTransform();
+        },
+        end: updateHudArea
+    };
+
     startButton.addEventListener('click', () => {
-        landingPage.classList.add('hidden'); designerPage.classList.remove('hidden');
+        landingPage.classList.add('hidden');
+        designerPage.classList.remove('hidden');
         updateCanvasTransform();
-        if (designObjects.length === 0) createObject(designerPage.clientWidth / 2, designerPage.clientHeight / 2);
+        if (designObjects.length === 0) {
+            createObject(designerPage.clientWidth / 2, designerPage.clientHeight / 2);
+        }
     });
 
-    addObjectBtn.addEventListener('click', () => createObject(designerPage.clientWidth / 2, designerPage.clientHeight / 2));
+    addObjectBtn.addEventListener('click', () => {
+        createObject(designerPage.clientWidth / 2, designerPage.clientHeight / 2);
+    });
 
     scaleSlider.addEventListener('input', (event) => {
-        scale = parseInt(event.target.value, 10); scaleValue.textContent = scale;
+        scale = parseInt(event.target.value, 10);
+        scaleValue.textContent = scale;
         designObjects.forEach(obj => renderObject(obj.id));
-        updateGrid(); updateHudArea();
+        updateGrid();
+        updateHudArea();
     });
 
     zoomSlider.addEventListener('input', updateCanvasTransform);
@@ -216,23 +291,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    
-    interactiveArea.addEventListener('click', (event) => { if (event.currentTarget === event.target) selectObject(null); });
+
+    interactiveArea.addEventListener('click', (event) => {
+        if (event.currentTarget === event.target) {
+            selectObject(null);
+        }
+    });
 
     interact(designerPage).draggable({
-        context: designerPage, ignoreFrom: '.resizable-box, #hud',
-        listeners: { move(event) { panX += event.dx; panY += event.dy; updateCanvasTransform(); } }
+        context: designerPage,
+        ignoreFrom: '.resizable-box, #hud',
+        listeners: panEvents
     });
-    
-    // NEW: Listeners for the toggles
+
     unionAreaToggle.addEventListener('change', (event) => {
         useUnionArea = event.target.checked;
         updateHudArea();
     });
+
     debugToggle.addEventListener('change', (event) => {
         showDebugMarkers = event.target.checked;
         updateHudArea();
     });
-    
+
     updateHudArea();
 });
