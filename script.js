@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let panY = 0;
     let useUnionArea = true;
     let showDebugMarkers = true;
-    let markerLayers = {}; // An object to hold references to each color's marker layer
+    let markerLayers = {};
 
     // --- Core Functions ---
 
@@ -37,10 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateGrid() {
         const zoom = zoomSlider.value;
         const gridSize = scale * zoom;
-        interactiveArea.style.backgroundImage = `
-            linear-gradient(to right, #e0e0e0 1px, transparent 1px),
-            linear-gradient(to bottom, #e0e0e0 1px, transparent 1px)
-        `;
+        interactiveArea.style.backgroundImage =
+            `linear-gradient(to right, #e0e0e0 1px, transparent 1px),
+            linear-gradient(to bottom, #e0e0e0 1px, transparent 1px)`;
         interactiveArea.style.backgroundSize = `${gridSize}px ${gridSize}px`;
     }
 
@@ -168,6 +167,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const [i, j] = pointString.split(',').map(Number);
             const marker = document.createElement('div');
             marker.className = 'debug-marker';
+
+            // This line dynamically sets the marker color
+            marker.style.backgroundColor = color;
+
             marker.style.left = `${(i / resolution) * scale}px`;
             marker.style.top = `${(j / resolution) * scale}px`;
             fragment.appendChild(marker);
